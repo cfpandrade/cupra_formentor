@@ -1,4 +1,4 @@
-"""Binary sensor integration for Cupra We Connect."""
+"""Binary sensor integration for Cupra Formentor."""
 from __future__ import annotations
 
 from collections.abc import Callable
@@ -11,10 +11,6 @@ from weconnect_cupra.elements.access_control_state import AccessControlState
 from weconnect_cupra.elements.connection_state import ConnectionState
 from weconnect_cupra.elements.lights_status import LightsStatus
 from weconnect_cupra.elements.engine_status import EngineStatus
-from weconnect_cupra.elements.door_status import DoorStatus
-from weconnect_cupra.elements.battery_status import BatteryStatus
-from weconnect_cupra.elements.parking_brake_status import ParkingBrakeStatus
-from weconnect_cupra.elements.air_conditioning_status import AirConditioningStatus
 
 from homeassistant.components.binary_sensor import (
     BinarySensorDeviceClass,
@@ -41,13 +37,6 @@ SENSORS: tuple[CupraBinaryEntityDescription, ...] = (
         on_value=PlugStatus.PlugConnectionState.CONNECTED,
     ),
     CupraBinaryEntityDescription(
-        key="plugLockState",
-        name="Plug Lock State",
-        device_class=BinarySensorDeviceClass.LOCK,
-        value=lambda data: data["charging"]["plugStatus"].plugLockState.value,
-        on_value=PlugStatus.PlugLockState.LOCKED,
-    ),
-    CupraBinaryEntityDescription(
         key="doorLockStatus",
         name="Door Lock Status",
         device_class=BinarySensorDeviceClass.LOCK,
@@ -62,13 +51,6 @@ SENSORS: tuple[CupraBinaryEntityDescription, ...] = (
         on_value=ConnectionState.ConnectionState.ONLINE,
     ),
     CupraBinaryEntityDescription(
-        key="windowHeatingEnabled",
-        name="Window Heating Enabled",
-        device_class=BinarySensorDeviceClass.HEAT,
-        value=lambda data: data["climatisation"]["windowHeatingStatus"].windows["front"].windowHeatingState.value,
-        on_value=WindowHeatingStatus.Window.WindowHeatingState.ON,
-    ),
-    CupraBinaryEntityDescription(
         key="engineStatus",
         name="Engine Status",
         device_class=BinarySensorDeviceClass.POWER,
@@ -81,34 +63,6 @@ SENSORS: tuple[CupraBinaryEntityDescription, ...] = (
         device_class=BinarySensorDeviceClass.LIGHT,
         value=lambda data: data["access"]["accessStatus"].lightsStatus.value,
         on_value=LightsStatus.LightsState.ON,
-    ),
-    CupraBinaryEntityDescription(
-        key="doorOpenStatus",
-        name="Door Open Status",
-        device_class=BinarySensorDeviceClass.DOOR,
-        value=lambda data: data["access"]["accessStatus"].doors["frontLeft"].openState.value,
-        on_value=DoorStatus.DoorState.OPEN,
-    ),
-    CupraBinaryEntityDescription(
-        key="parkingBrakeStatus",
-        name="Parking Brake Engaged",
-        device_class=BinarySensorDeviceClass.SAFETY,
-        value=lambda data: data["status"]["parkingBrakeStatus"].value,
-        on_value=ParkingBrakeStatus.Engaged,
-    ),
-    CupraBinaryEntityDescription(
-        key="batteryCharging",
-        name="Battery Charging",
-        device_class=BinarySensorDeviceClass.BATTERY_CHARGING,
-        value=lambda data: data["charging"]["batteryStatus"].charging.value,
-        on_value=BatteryStatus.ChargingState.CHARGING,
-    ),
-    CupraBinaryEntityDescription(
-        key="airConditioningActive",
-        name="Air Conditioning Active",
-        device_class=BinarySensorDeviceClass.POWER,
-        value=lambda data: data["climatisation"]["airConditioningStatus"].active.value,
-        on_value=AirConditioningStatus.ActiveState.ON,
     ),
 )
 
