@@ -1,12 +1,12 @@
-volkswagen_id_start_stop_charging:
-  name: Volkswagen ID Start or Stop Charging
-  description: Starts or stops charging of Volkswagen ID cars.
+cupra_start_stop_charging:
+  name: Cupra Start or Stop Charging
+  description: Starts or stops charging of Cupra vehicles.
   fields:
     vin:
       name: VIN
       description: Vehicle identification number for the car.
       required: true
-      example: WVGZZZA1ZMP001337
+      example: VSSZZZ5FZMR001337
       selector:
         text:
     start_stop:
@@ -19,15 +19,15 @@ volkswagen_id_start_stop_charging:
             - "start"
             - "stop"
 
-volkswagen_id_set_climatisation:
-  name: Volkswagen ID Set Climatisation
-  description: Sets climatisation in Volkswagen ID cars.
+cupra_set_climatisation:
+  name: Cupra Set Climatisation
+  description: Sets climatisation in Cupra vehicles.
   fields:
     vin:
       name: VIN
       description: Vehicle identification number for the car.
       required: true
-      example: WVGZZZA1ZMP001337
+      example: VSSZZZ5FZMR001337
       selector:
         text:
     start_stop:
@@ -40,8 +40,8 @@ volkswagen_id_set_climatisation:
             - "start"
             - "stop"
     target_temp:
-      name: Target Temperature.
-      description: Sets target temperature in celsius.
+      name: Target Temperature
+      description: Sets target temperature in Celsius.
       required: false
       selector:
         number:
@@ -49,19 +49,19 @@ volkswagen_id_set_climatisation:
           max: 30
           unit_of_measurement: "ºC"
 
-volkswagen_id_set_target_soc:
-  name: Volkswagen ID Set Target SoC
-  description: Sets the target SoC in Volkswagen ID cars.
+cupra_set_target_soc:
+  name: Cupra Set Target SoC
+  description: Sets the target SoC in Cupra vehicles.
   fields:
     vin:
       name: VIN
       description: Vehicle identification number for the car.
       required: true
-      example: WVGZZZA1ZMP001337
+      example: VSSZZZ5FZMR001337
       selector:
         text:
     target_soc:
-      name: Target State of Charge.
+      name: Target State of Charge
       description: Sets state of charge in percentage.
       required: true
       selector:
@@ -71,20 +71,20 @@ volkswagen_id_set_target_soc:
           step: 10
           unit_of_measurement: "%"
 
-volkswagen_id_set_ac_charge_speed:
-  name: Volkswagen ID Set AC Charge speed
-  description: Sets the AC charging speed in Volkswagen ID cars.
+cupra_set_ac_charge_speed:
+  name: Cupra Set AC Charge Speed
+  description: Sets the AC charging speed in Cupra vehicles.
   fields:
     vin:
       name: VIN
       description: Vehicle identification number for the car.
       required: true
-      example: WVGZZZA1ZMP001337
+      example: VSSZZZ5FZMR001337
       selector:
         text:
     maximum_reduced:
-      name: Maximum or reduced
-      description: Starts or stops climatisation.
+      name: Maximum or Reduced
+      description: Sets the AC charge speed.
       required: true
       selector:
         select:

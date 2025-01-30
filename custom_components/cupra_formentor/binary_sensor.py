@@ -1,4 +1,4 @@
-"""Binary_sensor integration."""
+"""Binary sensor integration for Cupra We Connect."""
 from __future__ import annotations
 
 from collections.abc import Callable
@@ -9,7 +9,12 @@ from weconnect_cupra.elements.plug_status import PlugStatus
 from weconnect_cupra.elements.window_heating_status import WindowHeatingStatus
 from weconnect_cupra.elements.access_control_state import AccessControlState
 from weconnect_cupra.elements.connection_state import ConnectionState
-
+from weconnect_cupra.elements.lights_status import LightsStatus
+from weconnect_cupra.elements.engine_status import EngineStatus
+from weconnect_cupra.elements.door_status import DoorStatus
+from weconnect_cupra.elements.battery_status import BatteryStatus
+from weconnect_cupra.elements.parking_brake_status import ParkingBrakeStatus
+from weconnect_cupra.elements.air_conditioning_status import AirConditioningStatus
 
 from homeassistant.components.binary_sensor import (
     BinarySensorDeviceClass,
@@ -18,351 +23,134 @@ from homeassistant.components.binary_sensor import (
 )
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
-from . import VolkswagenIDBaseEntity, get_object_value
+from . import CupraWeConnectEntity, get_object_value
 from .const import DOMAIN
 
-
 @dataclass
-class VolkswagenIdBinaryEntityDescription(BinarySensorEntityDescription):
-    """Describes Volkswagen ID binary sensor entity."""
-
+class CupraBinaryEntityDescription(BinarySensorEntityDescription):
+    """Describes a Cupra We Connect binary sensor entity."""
     value: Callable = lambda x, y: x
     on_value: object | None = None
 
-
-SENSORS: tuple[VolkswagenIdBinaryEntityDescription, ...] = (
-    VolkswagenIdBinaryEntityDescription(
-        key="climatisationWithoutExternalPower",
-        name="Climatisation Without External Power",
-        value=lambda data: data["climatisation"][
-            "climatisationSettings"
-        ].climatisationWithoutExternalPower.value,
-    ),
-    VolkswagenIdBinaryEntityDescription(
-        key="climatisationAtUnlock",
-        name="Climatisation At Unlock",
-        value=lambda data: data["climatisation"][
-            "climatisationSettings"
-        ].climatisationAtUnlock.value,
-    ),
-    VolkswagenIdBinaryEntityDescription(
-        key="zoneFrontLeftEnabled",
-        name="Zone Front Left Enabled",
-        value=lambda data: data["climatisation"][
-            "climatisationSettings"
-        ].zoneFrontLeftEnabled.value,
-    ),
-    VolkswagenIdBinaryEntityDescription(
-        key="zoneFrontRightEnabled",
-        name="Zone Front Right Enabled",
-        value=lambda data: data["climatisation"][
-            "climatisationSettings"
-        ].zoneFrontRightEnabled.value,
-    ),
-    VolkswagenIdBinaryEntityDescription(
-        key="windowHeatingEnabled",
-        name="Window Heating Enabled",
-        value=lambda data: data["climatisation"][
-            "climatisationSettings"
-        ].windowHeatingEnabled.value,
-    ),
-    VolkswagenIdBinaryEntityDescription(
-        key="frontWindowHeatingState",
-        name="Front Window Heating State",
-        value=lambda data: data["climatisation"]["windowHeatingStatus"]
-        .windows["front"]
-        .windowHeatingState.value,
-        on_value=WindowHeatingStatus.Window.WindowHeatingState.ON,
-    ),
-    VolkswagenIdBinaryEntityDescription(
-        key="rearWindowHeatingState",
-        name="Rear Window Heating State",
-        value=lambda data: data["climatisation"]["windowHeatingStatus"]
-        .windows["rear"]
-        .windowHeatingState.value,
-        on_value=WindowHeatingStatus.Window.WindowHeatingState.ON,
-    ),
-    VolkswagenIdBinaryEntityDescription(
-        key="autoUnlockPlugWhenCharged",
-        name="Auto Unlock Plug When Charged",
-        value=lambda data: data["charging"][
-            "chargingSettings"
-        ].autoUnlockPlugWhenCharged.value,
-        on_value="on",  # ChargingSettings.UnlockPlugState.ON,
-    ),
-    VolkswagenIdBinaryEntityDescription(
+SENSORS: tuple[CupraBinaryEntityDescription, ...] = (
+    CupraBinaryEntityDescription(
         key="plugConnectionState",
         name="Plug Connection State",
-        value=lambda data: data["charging"]["plugStatus"].plugConnectionState.value,
         device_class=BinarySensorDeviceClass.PLUG,
+        value=lambda data: data["charging"]["plugStatus"].plugConnectionState.value,
         on_value=PlugStatus.PlugConnectionState.CONNECTED,
     ),
-    VolkswagenIdBinaryEntityDescription(
+    CupraBinaryEntityDescription(
         key="plugLockState",
         name="Plug Lock State",
-        value=lambda data: data["charging"]["plugStatus"].plugLockState.value,
         device_class=BinarySensorDeviceClass.LOCK,
-        on_value=PlugStatus.PlugLockState.UNLOCKED,
+        value=lambda data: data["charging"]["plugStatus"].plugLockState.value,
+        on_value=PlugStatus.PlugLockState.LOCKED,
     ),
-    # Not available from Cupra
-    # VolkswagenIdBinaryEntityDescription(
-    #     key="insufficientBatteryLevelWarning",
-    #     name="Insufficient Battery Level Warning",
-    #     value=lambda data: data["readiness"][
-    #         "readinessStatus"
-    #     ].connectionWarning.insufficientBatteryLevelWarning.value,
-    # ),
-    VolkswagenIdBinaryEntityDescription(
-        name="Car Is Online",
-        key="isOnline",
-        value=lambda data: data["status"]["connectionStatus"].connectionState.value,
-        device_class=BinarySensorDeviceClass.CONNECTIVITY,
-        on_value=ConnectionState.ConnectionState.ONLINE
-    ),
-    # Not available from Cupra
-    # VolkswagenIdBinaryEntityDescription(
-    #     name="Car Is Active",
-    #     key="isActive",
-    #     value=lambda data: data["readiness"][
-    #         "readinessStatus"
-    #     ].connectionState.isActive.value,
-    # ),
-    VolkswagenIdBinaryEntityDescription(
+    CupraBinaryEntityDescription(
         key="doorLockStatus",
         name="Door Lock Status",
-        icon="mdi:car-door-lock",
         device_class=BinarySensorDeviceClass.LOCK,
         value=lambda data: data["access"]["accessStatus"].doorLockStatus.value,
         on_value=AccessControlState.LockState.UNLOCKED,
     ),
-    VolkswagenIdBinaryEntityDescription(
-        key="trunkLockStatus",
-        name="Trunk Lock Status",
-        icon="mdi:lock-outline",
-        device_class=BinarySensorDeviceClass.LOCK,
-        value=lambda data: data["access"]["accessStatus"]
-        .doors["trunk"]
-        .lockState.value,
-        on_value=AccessControlState.LockState.UNLOCKED,
+    CupraBinaryEntityDescription(
+        key="isOnline",
+        name="Car Is Online",
+        device_class=BinarySensorDeviceClass.CONNECTIVITY,
+        value=lambda data: data["status"]["connectionStatus"].connectionState.value,
+        on_value=ConnectionState.ConnectionState.ONLINE,
     ),
-    VolkswagenIdBinaryEntityDescription(
-        key="hoodLockStatus",
-        name="Hood Lock Status",
-        icon="mdi:lock-outline",
-        device_class=BinarySensorDeviceClass.LOCK,
-        value=lambda data: data["access"]["accessStatus"].doors["hood"].lockState.value,
-        on_value=AccessControlState.LockState.UNLOCKED,
+    CupraBinaryEntityDescription(
+        key="windowHeatingEnabled",
+        name="Window Heating Enabled",
+        device_class=BinarySensorDeviceClass.HEAT,
+        value=lambda data: data["climatisation"]["windowHeatingStatus"].windows["front"].windowHeatingState.value,
+        on_value=WindowHeatingStatus.Window.WindowHeatingState.ON,
     ),
-    VolkswagenIdBinaryEntityDescription(
-        key="rearRightLockStatus",
-        name="Door Rear Right Lock Status",
-        icon="mdi:car-door-lock",
-        device_class=BinarySensorDeviceClass.LOCK,
-        value=lambda data: data["access"]["accessStatus"]
-        .doors["rearRight"]
-        .lockState.value,
-        on_value=AccessControlState.LockState.UNLOCKED,
-    ),
-    VolkswagenIdBinaryEntityDescription(
-        key="rearLeftLockStatus",
-        name="Door Rear Left Lock Status",
-        icon="mdi:car-door-lock",
-        device_class=BinarySensorDeviceClass.LOCK,
-        value=lambda data: data["access"]["accessStatus"]
-        .doors["rearLeft"]
-        .lockState.value,
-        on_value=AccessControlState.LockState.UNLOCKED,
-    ),
-    VolkswagenIdBinaryEntityDescription(
-        key="frontLeftLockStatus",
-        name="Door Front Left Lock Status",
-        icon="mdi:car-door-lock",
-        device_class=BinarySensorDeviceClass.LOCK,
-        value=lambda data: data["access"]["accessStatus"]
-        .doors["frontLeft"]
-        .lockState.value,
-        on_value=AccessControlState.LockState.UNLOCKED,
-    ),
-    VolkswagenIdBinaryEntityDescription(
-        key="frontRightLockStatus",
-        name="Door Front Right Lock Status",
-        icon="mdi:car-door-lock",
-        device_class=BinarySensorDeviceClass.LOCK,
-        value=lambda data: data["access"]["accessStatus"]
-        .doors["frontRight"]
-        .lockState.value,
-        on_value=AccessControlState.LockState.UNLOCKED,
-    ),
-    VolkswagenIdBinaryEntityDescription(
-        key="trunkOpenStatus",
-        name="Trunk Open Status",
-        device_class=BinarySensorDeviceClass.DOOR,
-        value=lambda data: data["access"]["accessStatus"]
-        .doors["trunk"]
-        .openState.value,
-        on_value=AccessControlState.OpenState.OPEN,
-    ),
-    VolkswagenIdBinaryEntityDescription(
-        key="hoodOpenStatus",
-        name="Hood Open Status",
-        device_class=BinarySensorDeviceClass.DOOR,
-        value=lambda data: data["access"]["accessStatus"].doors["hood"].openState.value,
-        on_value=AccessControlState.OpenState.OPEN,
-    ),
-    VolkswagenIdBinaryEntityDescription(
-        key="rearRightOpenStatus",
-        name="Door Rear Right Open Status",
-        icon="mdi:car-door",
-        device_class=BinarySensorDeviceClass.DOOR,
-        value=lambda data: data["access"]["accessStatus"]
-        .doors["rearRight"]
-        .openState.value,
-        on_value=AccessControlState.OpenState.OPEN,
-    ),
-    VolkswagenIdBinaryEntityDescription(
-        key="rearLeftOpenStatus",
-        name="Door Rear Left Open Status",
-        icon="mdi:car-door",
-        device_class=BinarySensorDeviceClass.DOOR,
-        value=lambda data: data["access"]["accessStatus"]
-        .doors["rearLeft"]
-        .openState.value,
-        on_value=AccessControlState.OpenState.OPEN,
-    ),
-    VolkswagenIdBinaryEntityDescription(
-        key="frontLeftOpenStatus",
-        name="Door Front Left Open Status",
-        icon="mdi:car-door",
-        device_class=BinarySensorDeviceClass.DOOR,
-        value=lambda data: data["access"]["accessStatus"]
-        .doors["frontLeft"]
-        .openState.value,
-        on_value=AccessControlState.OpenState.OPEN,
-    ),
-    VolkswagenIdBinaryEntityDescription(
-        key="frontRightOpenStatus",
-        name="Door Front Right Open Status",
-        icon="mdi:car-door",
-        device_class=BinarySensorDeviceClass.DOOR,
-        value=lambda data: data["access"]["accessStatus"]
-        .doors["frontRight"]
-        .openState.value,
-        on_value=AccessControlState.OpenState.OPEN,
-    ),
-    VolkswagenIdBinaryEntityDescription(
-        key="windowRearRightOpenStatus",
-        name="Window Rear Right Open Status",
-        icon="mdi:window-closed",
-        device_class=BinarySensorDeviceClass.WINDOW,
-        value=lambda data: data["access"]["accessStatus"]
-        .windows["rearRight"]
-        .openState.value,
-        on_value=AccessControlState.OpenState.OPEN,
-    ),
-    VolkswagenIdBinaryEntityDescription(
-        key="windowRearLeftOpenStatus",
-        name="Window Rear Left Open Status",
-        icon="mdi:window-closed",
-        device_class=BinarySensorDeviceClass.WINDOW,
-        value=lambda data: data["access"]["accessStatus"]
-        .windows["rearLeft"]
-        .openState.value,
-        on_value=AccessControlState.OpenState.OPEN,
-    ),
-    VolkswagenIdBinaryEntityDescription(
-        key="windowFrontLeftOpenStatus",
-        name="Window Front Left Open Status",
-        icon="mdi:window-closed",
-        device_class=BinarySensorDeviceClass.WINDOW,
-        value=lambda data: data["access"]["accessStatus"]
-        .windows["frontLeft"]
-        .openState.value,
-        on_value=AccessControlState.OpenState.OPEN,
-    ),
-    VolkswagenIdBinaryEntityDescription(
-        key="windowfrontRightOpenStatus",
-        name="Window Front Right Open Status",
-        icon="mdi:window-closed",
-        device_class=BinarySensorDeviceClass.WINDOW,
-        value=lambda data: data["access"]["accessStatus"]
-        .windows["frontRight"]
-        .openState.value,
-        on_value=AccessControlState.OpenState.OPEN,
-    ),
-    VolkswagenIdBinaryEntityDescription(
-        key="overallStatus",
-        name="Overall Status",
-        icon="mdi:car-info",
-        device_class=BinarySensorDeviceClass.LOCK,
-        value=lambda data: data["access"]["accessStatus"].overallStatus.value,
-        on_value=AccessControlState.OverallState.UNSAFE,
-    ),
-    VolkswagenIdBinaryEntityDescription(
+    CupraBinaryEntityDescription(
         key="engineStatus",
         name="Engine Status",
-        icon="mdi:engine-outline",
         device_class=BinarySensorDeviceClass.POWER,
         value=lambda data: data["access"]["accessStatus"].engineStatus.value,
-        on_value=AccessControlState.EngineState.ON,
+        on_value=EngineStatus.EngineState.ON,
     ),
-    VolkswagenIdBinaryEntityDescription(
+    CupraBinaryEntityDescription(
         key="lightsStatus",
         name="Lights Status",
-        icon="mdi:car-light-dimmed",
         device_class=BinarySensorDeviceClass.LIGHT,
         value=lambda data: data["access"]["accessStatus"].lightsStatus.value,
-        on_value=AccessControlState.LightsState.ON,
+        on_value=LightsStatus.LightsState.ON,
+    ),
+    CupraBinaryEntityDescription(
+        key="doorOpenStatus",
+        name="Door Open Status",
+        device_class=BinarySensorDeviceClass.DOOR,
+        value=lambda data: data["access"]["accessStatus"].doors["frontLeft"].openState.value,
+        on_value=DoorStatus.DoorState.OPEN,
+    ),
+    CupraBinaryEntityDescription(
+        key="parkingBrakeStatus",
+        name="Parking Brake Engaged",
+        device_class=BinarySensorDeviceClass.SAFETY,
+        value=lambda data: data["status"]["parkingBrakeStatus"].value,
+        on_value=ParkingBrakeStatus.Engaged,
+    ),
+    CupraBinaryEntityDescription(
+        key="batteryCharging",
+        name="Battery Charging",
+        device_class=BinarySensorDeviceClass.BATTERY_CHARGING,
+        value=lambda data: data["charging"]["batteryStatus"].charging.value,
+        on_value=BatteryStatus.ChargingState.CHARGING,
+    ),
+    CupraBinaryEntityDescription(
+        key="airConditioningActive",
+        name="Air Conditioning Active",
+        device_class=BinarySensorDeviceClass.POWER,
+        value=lambda data: data["climatisation"]["airConditioningStatus"].active.value,
+        on_value=AirConditioningStatus.ActiveState.ON,
     ),
 )
 
-
 async def async_setup_entry(hass, config_entry, async_add_entities):
-    """Add sensors for passed config_entry in HA."""
+    """Set up binary sensors for Cupra We Connect."""
     we_connect: weconnect_cupra.WeConnect = hass.data[DOMAIN][config_entry.entry_id]
     coordinator = hass.data[DOMAIN][config_entry.entry_id + "_coordinator"]
 
-    # Fetch initial data so we have data when entities subscribe
     await coordinator.async_config_entry_first_refresh()
 
-    entities: list[VolkswagenIDSensor] = []
+    entities = [CupraBinarySensor(sensor, we_connect, coordinator, index)
+                for index, vehicle in enumerate(coordinator.data)
+                for sensor in SENSORS]
 
-    for index, vehicle in enumerate(coordinator.data):
-        for sensor in SENSORS:
-            entities.append(VolkswagenIDSensor(sensor, we_connect, coordinator, index))
     if entities:
         async_add_entities(entities)
 
+class CupraBinarySensor(CupraWeConnectEntity, BinarySensorEntity):
+    """Representation of a Cupra We Connect binary sensor."""
 
-class VolkswagenIDSensor(VolkswagenIDBaseEntity, BinarySensorEntity):
-    """Representation of a VolkswagenID vehicle sensor."""
-
-    entity_description: VolkswagenIdBinaryEntityDescription
+    entity_description: CupraBinaryEntityDescription
 
     def __init__(
         self,
-        sensor: VolkswagenIdBinaryEntityDescription,
+        sensor: CupraBinaryEntityDescription,
         we_connect: weconnect_cupra.WeConnect,
         coordinator: DataUpdateCoordinator,
         index: int,
     ) -> None:
-        """Initialize VolkswagenID vehicle sensor."""
+        """Initialize Cupra We Connect binary sensor."""
         super().__init__(we_connect, coordinator, index)
-
         self.entity_description = sensor
-        self._coordinator = coordinator
         self._attr_name = f"{self.data.nickname} {sensor.name}"
         self._attr_unique_id = f"{self.data.vin}-{sensor.key}"
 
     @property
     def is_on(self) -> bool:
-        """Return true if sensor is on."""
+        """Return true if the binary sensor is on."""
         try:
             state = self.entity_description.value(self.data.domains)
             if isinstance(state, bool):
                 return state
-
-            state = get_object_value(state)
-            return state == get_object_value(self.entity_description.on_value)
-
+            return get_object_value(state) == get_object_value(self.entity_description.on_value)
         except KeyError:
             return None

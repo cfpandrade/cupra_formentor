@@ -1,4 +1,4 @@
-"""Entity representing a Volkswagen number control."""
+"""Number entity integration for Cupra We Connect."""
 from __future__ import annotations
 
 from weconnect_cupra import weconnect_cupra
@@ -7,47 +7,33 @@ from homeassistant.components.number import NumberEntity
 from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
-from . import (
-    VolkswagenIDBaseEntity,
-    get_object_value,
-    set_climatisation,
-    set_target_soc,
-)
+from . import CupraWeConnectEntity, get_object_value, set_climatisation, set_target_soc
 from .const import DOMAIN
-
 from homeassistant.const import UnitOfTemperature
 
 async def async_setup_entry(hass, config_entry, async_add_entities):
-    """Add buttons for passed config_entry in HA."""
+    """Set up number entities for Cupra We Connect."""
     we_connect: weconnect_cupra.WeConnect = hass.data[DOMAIN][config_entry.entry_id]
     coordinator = hass.data[DOMAIN][config_entry.entry_id + "_coordinator"]
 
-    # Fetch initial data so we have data when entities subscribe
     await coordinator.async_config_entry_first_refresh()
 
-    entities = []
-
-    for index, vehicle in enumerate(coordinator.data):
-        entities.append(TargetSoCNumber(we_connect, coordinator, index))
-        entities.append(TargetClimateNumber(we_connect, coordinator, index))
+    entities = [
+        CupraTargetSoCNumber(we_connect, coordinator, index),
+        CupraTargetClimateNumber(we_connect, coordinator, index)
+        for index, vehicle in enumerate(coordinator.data)
+    ]
+    
     if entities:
         async_add_entities(entities)
 
-
-class TargetSoCNumber(VolkswagenIDBaseEntity, NumberEntity):
-    """Representation of a Target SoC entity."""
+class CupraTargetSoCNumber(CupraWeConnectEntity, NumberEntity):
+    """Representation of a Target State of Charge entity."""
 
     _attr_entity_category = EntityCategory.CONFIG
 
-    def __init__(
-        self,
-        we_connect: weconnect_cupra.WeConnect,
-        coordinator: DataUpdateCoordinator,
-        index: int,
-    ) -> None:
-        """Initialize VolkswagenID vehicle sensor."""
+    def __init__(self, we_connect: weconnect_cupra.WeConnect, coordinator: DataUpdateCoordinator, index: int) -> None:
         super().__init__(we_connect, coordinator, index)
-
         self._coordinator = coordinator
         self._attr_name = f"{self.data.nickname} Target State Of Charge"
         self._attr_unique_id = f"{self.data.vin}-target_state_of_charge"
@@ -58,38 +44,19 @@ class TargetSoCNumber(VolkswagenIDBaseEntity, NumberEntity):
 
     @property
     def native_value(self) -> float | None:
-        """Return the value reported by the number."""
-        return int(
-            get_object_value(
-                self.data.domains["charging"]["chargingSettings"].targetSOC_pct.value
-            )
-        )
+        return int(get_object_value(self.data.domains["charging"]["chargingSettings"].targetSOC_pct.value))
 
     async def async_set_native_value(self, value: float) -> None:
-        """Update the current value."""
         if value > 10:
-            await self.hass.async_add_executor_job(
-                set_target_soc,
-                self.data.vin.value,
-                self._we_connect,
-                value,
-            )
+            await self.hass.async_add_executor_job(set_target_soc, self.data.vin.value, self._we_connect, value)
 
-
-class TargetClimateNumber(VolkswagenIDBaseEntity, NumberEntity):
-    """Representation of a Target Climate entity."""
+class CupraTargetClimateNumber(CupraWeConnectEntity, NumberEntity):
+    """Representation of a Target Climate Temperature entity."""
 
     _attr_entity_category = EntityCategory.CONFIG
 
-    def __init__(
-        self,
-        we_connect: weconnect_cupra.WeConnect,
-        coordinator: DataUpdateCoordinator,
-        index: int,
-    ) -> None:
-        """Initialize VolkswagenID vehicle sensor."""
+    def __init__(self, we_connect: weconnect_cupra.WeConnect, coordinator: DataUpdateCoordinator, index: int) -> None:
         super().__init__(we_connect, coordinator, index)
-
         self._coordinator = coordinator
         self._attr_name = f"{self.data.nickname} Target Climate Temperature"
         self._attr_unique_id = f"{self.data.vin}-target_climate_temperature"
@@ -101,17 +68,9 @@ class TargetClimateNumber(VolkswagenIDBaseEntity, NumberEntity):
 
     @property
     def native_value(self) -> float | None:
-        """Return the value reported by the number."""
-        targetTemp = self.data.domains["climatisation"][
-            "climatisationSettings"
-        ].targetTemperature_C.value
-
+        targetTemp = self.data.domains["climatisation"]["climatisationSettings"].targetTemperature_C.value
         return float(targetTemp)
 
     async def async_set_native_value(self, value: float) -> None:
-        """Update the current value."""
         if value > 10:
-            self._attr_value = value
-            await self.hass.async_add_executor_job(
-                set_climatisation, self.data.vin.value, self._we_connect, "none", value
-            )
+            await self.hass.async_add_executor_job(set_climatisation, self.data.vin.value, self._we_connect, "none", value)
