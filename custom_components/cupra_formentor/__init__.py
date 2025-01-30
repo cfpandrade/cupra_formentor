@@ -28,7 +28,6 @@ _LOGGER = logging.getLogger(__name__)
 # We shouldn't need to do this check. weconnect_cupra-python abstracts it away
 # SUPPORTED_VEHICLES = ["ID.3", "ID.4", "ID.5"]
 
-
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Volkswagen We Connect ID from a config entry."""
 
