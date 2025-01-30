@@ -1,4 +1,4 @@
-"""Config flow for Cupra We Connect integration."""
+"""Config flow for Cupra Formentor integration."""
 from __future__ import annotations
 
 import logging
@@ -62,11 +62,11 @@ async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str,
 
         for vin, vehicle in we_connect.vehicles.items():
             _LOGGER.debug(f"Found VIN: {vin}")
-            vehicle_data = vehicle.to_dict()
-            filtered_data = {k: v for k, v in vehicle_data.items() if v not in [None, "Unknown", "unknown"]}
-            _LOGGER.debug(f"Filtered vehicle data ({vin}): {filtered_data}")
-            if not filtered_data:
-                _LOGGER.warning(f"All sensors for vehicle {vin} are empty or invalid.")
+            vehicle_data = {attr: getattr(vehicle, attr, None) for attr in dir(vehicle) if not attr.startswith("_")}
+            _LOGGER.debug(f"Extracted vehicle data ({vin}): {vehicle_data}")
+            
+            if not vehicle_data:
+                _LOGGER.warning(f"No valid data extracted for vehicle {vin}.")
     
     except AuthentificationError as ex:
         _LOGGER.error("Authentication error", exc_info=True)
@@ -78,7 +78,7 @@ async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str,
         _LOGGER.error("Unexpected error", exc_info=True)
         raise CannotConnect from ex
     
-    return {"title": "Cupra We Connect"}
+    return {"title": "Cupra Formentor"}
 
 
 class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
