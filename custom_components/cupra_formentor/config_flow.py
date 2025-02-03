@@ -1,4 +1,4 @@
-"""Config flow for Cupra Formentor integration."""
+"""Config flow for Cupra We Connect integration."""
 from __future__ import annotations
 
 import logging
@@ -21,6 +21,7 @@ from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
+# Schema para el formulario
 STEP_USER_DATA_SCHEMA = vol.Schema(
     {
         vol.Required("username"): str,
@@ -35,10 +36,11 @@ STEP_USER_DATA_SCHEMA = vol.Schema(
     }
 )
 
+
 async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str, Any]:
-    """Validates credentials and API connection."""
-    _LOGGER.debug(f'Validating credentials: user={data["username"]}, service={data["service"]}')
-    
+    """Valida las credenciales y conexión con la API."""
+    _LOGGER.debug(f'Validando credenciales: usuario={data["username"]}, servicio={data["service"]}')
+
     try:
         we_connect = weconnect_cupra.WeConnect(
             username=data["username"],
@@ -48,48 +50,75 @@ async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str,
             loginOnInit=False,
         )
 
-        _LOGGER.debug("Logging in...")
-        await hass.async_add_executor_job(we_connect.login)
-        _LOGGER.debug("Login successful")
+        try:
+            # Paso 1: Login
+            _LOGGER.debug("Iniciando sesión...")
+            await hass.async_add_executor_job(we_connect.login)
+            _LOGGER.debug("Login exitoso")
 
-        _LOGGER.debug("Updating vehicle data...")
-        await hass.async_add_executor_job(we_connect.update)
-        _LOGGER.debug("Update completed")
+            # Paso 2: Obtener datos del vehículo
+            _LOGGER.debug("Actualizando datos del vehículo...")
+            await hass.async_add_executor_job(we_connect.update)
+            _LOGGER.debug("Actualización completada")
 
-        if not we_connect.vehicles:
-            _LOGGER.error("No vehicles found in the account")
-            raise NoVehiclesFound
+            if we_connect.vehicles:
+                for vin, vehicle in we_connect.vehicles.items():
+                    _LOGGER.debug(f"VIN encontrado: {vin}")
+                    try:
+                        # Obtener todos los datos del vehículo en formato dict
+                        vehicle_data = vehicle.to_dict()
 
-        for vin, vehicle in we_connect.vehicles.items():
-            _LOGGER.debug(f"Found VIN: {vin}")
-            vehicle_data = {attr: getattr(vehicle, attr, None) for attr in dir(vehicle) if not attr.startswith("_")}
-            _LOGGER.debug(f"Extracted vehicle data ({vin}): {vehicle_data}")
-            
-            if not vehicle_data:
-                _LOGGER.warning(f"No valid data extracted for vehicle {vin}.")
-    
-    except AuthentificationError as ex:
-        _LOGGER.error("Authentication error", exc_info=True)
-        raise InvalidAuth from ex
-    except APIError as ex:
-        _LOGGER.error("API error", exc_info=True)
-        raise CannotConnect from ex
-    except Exception as ex:
-        _LOGGER.error("Unexpected error", exc_info=True)
-        raise CannotConnect from ex
-    
-    return {"title": "Cupra Formentor"}
+                        # Registrar todos los datos en los logs
+                        _LOGGER.debug(f"Datos completos del vehículo ({vin}): {vehicle_data}")
+
+                        # Filtrar datos con valores no válidos
+                        filtered_data = {
+                            key: value for key, value in vehicle_data.items()
+                            if value not in [None, "Unknown", "unknown"]
+                        }
+
+                        # Registrar los datos filtrados
+                        _LOGGER.debug(f"Datos filtrados del vehículo ({vin}): {filtered_data}")
+
+                        # Advertencia si no hay datos válidos
+                        if not filtered_data:
+                            _LOGGER.warning(f"Todos los sensores para el vehículo {vin} están vacíos o no válidos.")
+
+                    except Exception as e:
+                        _LOGGER.error(f"Error al leer datos del vehículo: {e}")
+            else:
+                _LOGGER.error("No se encontraron vehículos en la cuenta")
+                raise NoVehiclesFound
+
+        except AuthentificationError as ex:
+            _LOGGER.error(f"Error de autenticación: {ex}", exc_info=True)
+            raise InvalidAuth from ex
+        except APIError as ex:
+            _LOGGER.error(f"Error de la API: {ex}", exc_info=True)
+            raise CannotConnect from ex
+        except KeyError as ex:
+            _LOGGER.error(f"Campo faltante en la respuesta: {ex}", exc_info=True)
+            raise CannotConnect from ex
+        except Exception as ex:
+            _LOGGER.error(f"Error inesperado: {ex}", exc_info=True)
+            raise CannotConnect from ex
+
+    except Exception as setup_ex:
+        _LOGGER.error(f"Error en el flujo de configuración: {setup_ex}", exc_info=True)
+        raise
+
+    return {"title": "Cupra We Connect"}
 
 
 class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
-    """Handles the configuration flow."""
+    """Maneja el flujo de configuración."""
 
     VERSION = 1
 
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
-        """Handles the initial step of configuration."""
+        """Maneja el paso inicial de configuración."""
         if user_input is None:
             return self.async_show_form(
                 step_id="user", data_schema=STEP_USER_DATA_SCHEMA
@@ -105,8 +134,8 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             errors["base"] = "invalid_auth"
         except NoVehiclesFound:
             errors["base"] = "no_vehicles_found"
-        except Exception:
-            _LOGGER.exception("Unexpected error")
+        except Exception:  # pylint: disable=broad-except
+            _LOGGER.exception("Error inesperado")
             errors["base"] = "unknown"
         else:
             return self.async_create_entry(title=info["title"], data=user_input)
@@ -116,11 +145,12 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         )
 
 
+# Clases de excepciones
 class CannotConnect(HomeAssistantError):
-    """Error connecting to the API."""
+    """Error de conexión con la API."""
 
 class InvalidAuth(HomeAssistantError):
-    """Authentication error."""
+    """Error de autenticación."""
 
 class NoVehiclesFound(HomeAssistantError):
-    """No vehicles found."""
+    """No se encontraron vehículos."""
