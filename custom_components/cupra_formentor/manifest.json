@@ -12,6 +12,7 @@
     "weconnect>=0.60.0"
   ],
   "ssdp": [],
-  "version": "0.2.0",
-  "zeroconf": []
+  "version": "0.3.0",
+  "zeroconf": [],
+  "integration_type": "hub"
 }
