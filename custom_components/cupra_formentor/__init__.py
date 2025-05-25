@@ -1,4 +1,4 @@
-"""The Volkswagen We Connect ID integration."""
+"""The Cupra Formentor integration."""
 from __future__ import annotations
 
 from datetime import timedelta
@@ -6,9 +6,9 @@ import logging
 import asyncio
 import time
 
-from weconnect_cupra import weconnect_cupra
-from weconnect_cupra.service import Service
-from weconnect_cupra.elements.control_operation import ControlOperation
+from weconnect import weconnect
+from weconnect.service import Service
+from weconnect.elements.control_operation import ControlOperation
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
@@ -25,14 +25,11 @@ PLATFORMS = [Platform.BINARY_SENSOR, Platform.BUTTON, Platform.SENSOR, Platform.
 
 _LOGGER = logging.getLogger(__name__)
 
-# We shouldn't need to do this check. weconnect_cupra-python abstracts it away
-# SUPPORTED_VEHICLES = ["ID.3", "ID.4", "ID.5"]
-
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    """Set up Volkswagen We Connect ID from a config entry."""
+    """Set up Cupra Formentor from a config entry."""
 
     hass.data.setdefault(DOMAIN, {})
-    _we_connect = weconnect_cupra.WeConnect(
+    _we_connect = weconnect.WeConnect(
         username=entry.data["username"],
         password=entry.data["password"],
         service=Service(entry.data["service"]),
@@ -53,19 +50,15 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 timeout=120.0
             )
         except asyncio.TimeoutError:
-            _LOGGER.error("Timeout updating weconnect_cupra")
+            _LOGGER.error("Timeout updating weconnect")
             return hass.data[DOMAIN][entry.entry_id + "_vehicles"]
         except Exception:
-            _LOGGER.error("Unknown error while updating weconnect_cupra", exc_info=1)
+            _LOGGER.error("Unknown error while updating weconnect", exc_info=1)
             return hass.data[DOMAIN][entry.entry_id + "_vehicles"]
 
         vehicles = []
 
         for vin, vehicle in _we_connect.vehicles.items():
-            # TODO this needs to be done in validate_input so we can warn
-            # user if their vehicle is unsupported
-            # if vehicle.model.value in SUPPORTED_VEHICLES:
-            #     vehicles.append(vehicle)
             vehicles.append(vehicle)
 
         hass.data[DOMAIN][entry.entry_id + "_vehicles"] = vehicles
@@ -91,7 +84,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
     @callback
-    async def volkswagen_id_start_stop_charging(call: ServiceCall) -> None:
+    async def cupra_formentor_start_stop_charging(call: ServiceCall) -> None:
 
         vin = call.data["vin"]
         start_stop = call.data["start_stop"]
@@ -108,7 +101,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             _LOGGER.error("Cannot send charging request to car")
 
     @callback
-    async def volkswagen_id_set_climatisation(call: ServiceCall) -> None:
+    async def cupra_formentor_set_climatisation(call: ServiceCall) -> None:
 
         vin = call.data["vin"]
         start_stop = call.data["start_stop"]
@@ -129,7 +122,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             _LOGGER.error("Cannot send climate request to car")
 
     @callback
-    async def volkswagen_id_set_target_soc(call: ServiceCall) -> None:
+    async def cupra_formentor_set_target_soc(call: ServiceCall) -> None:
 
         vin = call.data["vin"]
         target_soc = 0
@@ -148,7 +141,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             _LOGGER.error("Cannot send target soc request to car")
 
     @callback
-    async def volkswagen_id_set_ac_charge_speed(call: ServiceCall) -> None:
+    async def cupra_formentor_set_ac_charge_speed(call: ServiceCall) -> None:
 
         vin = call.data["vin"]
         if "maximum_reduced" in call.data:
@@ -165,26 +158,26 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     # Register our services with Home Assistant.
     hass.services.async_register(
-        DOMAIN, "volkswagen_id_start_stop_charging", volkswagen_id_start_stop_charging
+        DOMAIN, "cupra_formentor_start_stop_charging", cupra_formentor_start_stop_charging
     )
 
     hass.services.async_register(
-        DOMAIN, "volkswagen_id_set_climatisation", volkswagen_id_set_climatisation
+        DOMAIN, "cupra_formentor_set_climatisation", cupra_formentor_set_climatisation
     )
     hass.services.async_register(
-        DOMAIN, "volkswagen_id_set_target_soc", volkswagen_id_set_target_soc
+        DOMAIN, "cupra_formentor_set_target_soc", cupra_formentor_set_target_soc
     )
     hass.services.async_register(
-        DOMAIN, "volkswagen_id_set_ac_charge_speed", volkswagen_id_set_ac_charge_speed
+        DOMAIN, "cupra_formentor_set_ac_charge_speed", cupra_formentor_set_ac_charge_speed
     )
 
     return True
 
 
 def start_stop_charging(
-    call_data_vin, api: weconnect_cupra.WeConnect, operation: str
+    call_data_vin, api: weconnect.WeConnect, operation: str
 ) -> bool:
-    """Start of stop charging of your volkswagen."""
+    """Start of stop charging of your Cupra Formentor."""
 
     for vin, vehicle in api.vehicles.items():
         if vin == call_data_vin:
@@ -196,7 +189,7 @@ def start_stop_charging(
                         and vehicle.controls.chargingControl.enabled
                     ):
                         vehicle.controls.chargingControl.value = ControlOperation.START
-                        _LOGGER.info("Sended start charging call to the car")
+                        _LOGGER.info("Sent start charging call to the car")
                 except Exception as exc:
                     _LOGGER.error("Failed to send request to car - %s", exc)
                     return False
@@ -208,7 +201,7 @@ def start_stop_charging(
                         and vehicle.controls.chargingControl.enabled
                     ):
                         vehicle.controls.chargingControl.value = ControlOperation.STOP
-                        _LOGGER.info("Sended stop charging call to the car")
+                        _LOGGER.info("Sent stop charging call to the car")
                 except Exception as exc:
                     _LOGGER.error("Failed to send request to car - %s", exc)
                     return False
@@ -216,76 +209,75 @@ def start_stop_charging(
 
 
 def set_ac_charging_speed(
-    call_data_vin, api: weconnect_cupra.WeConnect, charging_speed
+    call_data_vin, api: weconnect.WeConnect, charging_speed
 ) -> bool:
-    """Set charging speed in your volkswagen."""
+    """Set charging speed in your Cupra Formentor."""
 
     for vin, vehicle in api.vehicles.items():
         if vin == call_data_vin:
-            if (
-                charging_speed
-                != vehicle.domains["charging"][
-                    "chargingSettings"
-                ].maxChargeCurrentAC.value
-            ):
-                try:
-                    vehicle.domains["charging"][
-                        "chargingSettings"
-                    ].maxChargeCurrentAC.value = charging_speed
-                    _LOGGER.info("Sended charging speed call to the car")
-                except Exception as exc:
-                    _LOGGER.error("Failed to send request to car - %s", exc)
-                    return False
+            try:
+                # Handle None values for hybrid vehicles
+                charging_settings = vehicle.domains.get("charging", {}).get("chargingSettings")
+                if charging_settings and hasattr(charging_settings, 'maxChargeCurrentAC'):
+                    current_speed = getattr(charging_settings.maxChargeCurrentAC, 'value', None)
+                    if current_speed is not None and charging_speed != current_speed:
+                        charging_settings.maxChargeCurrentAC.value = charging_speed
+                        _LOGGER.info("Sent charging speed call to the car")
+                else:
+                    _LOGGER.warning("Charging settings not available for this vehicle")
+            except Exception as exc:
+                _LOGGER.error("Failed to send request to car - %s", exc)
+                return False
 
     return True
 
 
-def set_target_soc(call_data_vin, api: weconnect_cupra.WeConnect, target_soc: int) -> bool:
-    """Set target SOC in your volkswagen."""
+def set_target_soc(call_data_vin, api: weconnect.WeConnect, target_soc: int) -> bool:
+    """Set target SOC in your Cupra Formentor."""
 
     target_soc = int(target_soc)
 
     for vin, vehicle in api.vehicles.items():
         if vin == call_data_vin:
-            if (
-                target_soc > 10
-                and target_soc
-                != vehicle.domains["charging"]["chargingSettings"].targetSOC_pct.value
-            ):
-                try:
-                    vehicle.domains["charging"][
-                        "chargingSettings"
-                    ].targetSOC_pct.value = target_soc
-                    _LOGGER.info("Sended target SoC call to the car")
-                except Exception as exc:
-                    _LOGGER.error("Failed to send request to car - %s", exc)
-                    return False
+            try:
+                # Handle None values for hybrid vehicles
+                charging_settings = vehicle.domains.get("charging", {}).get("chargingSettings")
+                if charging_settings and hasattr(charging_settings, 'targetSOC_pct'):
+                    current_soc = getattr(charging_settings.targetSOC_pct, 'value', None)
+                    if target_soc > 10 and current_soc is not None and target_soc != current_soc:
+                        charging_settings.targetSOC_pct.value = target_soc
+                        _LOGGER.info("Sent target SoC call to the car")
+                else:
+                    _LOGGER.warning("Target SOC setting not available for this vehicle")
+            except Exception as exc:
+                _LOGGER.error("Failed to send request to car - %s", exc)
+                return False
     return True
 
 
 def set_climatisation(
-    call_data_vin, api: weconnect_cupra.WeConnect, operation: str, target_temperature: float
+    call_data_vin, api: weconnect.WeConnect, operation: str, target_temperature: float
 ) -> bool:
-    """Set climate in your volkswagen."""
+    """Set climate in your Cupra Formentor."""
 
     for vin, vehicle in api.vehicles.items():
         if vin == call_data_vin:
 
-            if (
-                target_temperature > 10
-                and target_temperature
-                != vehicle.domains["climatisation"][
-                    "climatisationSettings"
-                ].targetTemperature_C.value
-            ):
-                try:
-                    vehicle.domains["climatisation"][
-                        "climatisationSettings"
-                    ].targetTemperature_C.value = float(target_temperature)
-                    _LOGGER.info("Sended target temperature call to the car")
-                except Exception as exc:
-                    _LOGGER.error("Failed to send request to car - %s", exc)
-                    return False
+            try:
+                # Handle temperature setting
+                climatisation_settings = vehicle.domains.get("climatisation", {}).get("climatisationSettings")
+                if (
+                    target_temperature > 10
+                    and climatisation_settings 
+                    and hasattr(climatisation_settings, 'targetTemperature_C')
+                ):
+                    current_temp = getattr(climatisation_settings.targetTemperature_C, 'value', None)
+                    if current_temp is not None and target_temperature != current_temp:
+                        climatisation_settings.targetTemperature_C.value = float(target_temperature)
+                        _LOGGER.info("Sent target temperature call to the car")
+            except Exception as exc:
+                _LOGGER.error("Failed to send temperature request to car - %s", exc)
+                return False
 
             if operation == "start":
                 try:
@@ -294,9 +286,9 @@ def set_climatisation(
                         and vehicle.controls.climatizationControl.enabled
                     ):
                         vehicle.controls.climatizationControl.value = ControlOperation.START
-                        _LOGGER.info("Sended start climate call to the car")
+                        _LOGGER.info("Sent start climate call to the car")
                 except Exception as exc:
-                    _LOGGER.error("Failed to send request to car - %s", exc)
+                    _LOGGER.error("Failed to send climate start request to car - %s", exc)
                     return False
 
             if operation == "stop":
@@ -306,9 +298,9 @@ def set_climatisation(
                         and vehicle.controls.climatizationControl.enabled
                     ):
                         vehicle.controls.climatizationControl.value = ControlOperation.STOP
-                        _LOGGER.info("Sended stop climate call to the car")
+                        _LOGGER.info("Sent stop climate call to the car")
                 except Exception as exc:
-                    _LOGGER.error("Failed to send request to car - %s", exc)
+                    _LOGGER.error("Failed to send climate stop request to car - %s", exc)
                     return False
     return True
 
@@ -332,15 +324,14 @@ def get_object_value(value) -> str:
     return value
 
 
-class VolkswagenIDBaseEntity(CoordinatorEntity):
-    """Common base for VolkswagenID entities."""
+class CupraFormentorBaseEntity(CoordinatorEntity):
+    """Common base for Cupra Formentor entities."""
 
-    # _attr_should_poll = False
-    _attr_attribution = "Data provided by Cupra Connect ID"
+    _attr_attribution = "Data provided by Cupra Connect"
 
     def __init__(
         self,
-        we_connect: weconnect_cupra.WeConnect,
+        we_connect: weconnect.WeConnect,
         coordinator: DataUpdateCoordinator,
         index: int,
     ) -> None:
@@ -350,9 +341,9 @@ class VolkswagenIDBaseEntity(CoordinatorEntity):
         self.index = index
 
         self._attr_device_info = DeviceInfo(
-            identifiers={(DOMAIN, f"vw{self.data.vin}")},
+            identifiers={(DOMAIN, f"cupra{self.data.vin}")},
             manufacturer="Cupra",
-            model=f"{self.data.model}",  # format because of the ID.3/ID.4 names.
+            model=f"{self.data.model}",
             name=f"{self.data.nickname} ({self.data.vin})",
         )
 

@@ -1,4 +1,4 @@
-"""Config flow for Cupra We Connect integration."""
+"""Config flow for Cupra Formentor integration."""
 from __future__ import annotations
 
 import logging
@@ -6,9 +6,9 @@ from typing import Any
 
 import voluptuous as vol
 
-from weconnect_cupra import weconnect_cupra
-from weconnect_cupra.service import Service
-from weconnect_cupra.errors import AuthentificationError, APIError
+from weconnect import weconnect
+from weconnect.service import Service
+from weconnect.errors import AuthentificationError, APIError
 
 from homeassistant import config_entries
 from homeassistant.core import HomeAssistant
@@ -16,7 +16,6 @@ from homeassistant.data_entry_flow import FlowResult
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.selector import selector
 
-from . import patch  # Applies the monkey patch
 from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
@@ -42,7 +41,7 @@ async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str,
     _LOGGER.debug(f'Validando credenciales: usuario={data["username"]}, servicio={data["service"]}')
 
     try:
-        we_connect = weconnect_cupra.WeConnect(
+        we_connect = weconnect.WeConnect(
             username=data["username"],
             password=data["password"],
             service=Service(data["service"]),
@@ -65,24 +64,47 @@ async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str,
                 for vin, vehicle in we_connect.vehicles.items():
                     _LOGGER.debug(f"VIN encontrado: {vin}")
                     try:
-                        # Obtener todos los datos del vehículo en formato dict
-                        vehicle_data = vehicle.to_dict()
+                        # Verificar que es un Cupra Formentor
+                        model = getattr(vehicle, 'model', None)
+                        if model:
+                            model_value = getattr(model, 'value', str(model))
+                            _LOGGER.debug(f"Modelo detectado: {model_value}")
+                            
+                            # Aceptar Formentor y otros modelos Cupra
+                            if 'formentor' in model_value.lower() or 'cupra' in model_value.lower():
+                                _LOGGER.info(f"Cupra Formentor detectado: {model_value}")
+                            else:
+                                _LOGGER.warning(f"Modelo no es Formentor: {model_value}")
 
-                        # Registrar todos los datos en los logs
-                        _LOGGER.debug(f"Datos completos del vehículo ({vin}): {vehicle_data}")
-
-                        # Filtrar datos con valores no válidos
-                        filtered_data = {
-                            key: value for key, value in vehicle_data.items()
-                            if value not in [None, "Unknown", "unknown"]
+                        # Obtener datos básicos del vehículo
+                        vehicle_info = {
+                            'vin': vin,
+                            'model': getattr(getattr(vehicle, 'model', None), 'value', 'Unknown'),
+                            'nickname': getattr(getattr(vehicle, 'nickname', None), 'value', 'Unknown'),
                         }
+                        _LOGGER.debug(f"Información del vehículo: {vehicle_info}")
 
-                        # Registrar los datos filtrados
-                        _LOGGER.debug(f"Datos filtrados del vehículo ({vin}): {filtered_data}")
-
-                        # Advertencia si no hay datos válidos
-                        if not filtered_data:
-                            _LOGGER.warning(f"Todos los sensores para el vehículo {vin} están vacíos o no válidos.")
+                        # Verificar dominios disponibles
+                        if hasattr(vehicle, 'domains'):
+                            available_domains = list(vehicle.domains.keys())
+                            _LOGGER.debug(f"Dominios disponibles: {available_domains}")
+                            
+                            # Verificar charging domain para vehículos híbridos/eléctricos
+                            if 'charging' in available_domains:
+                                charging = vehicle.domains['charging']
+                                _LOGGER.debug(f"Dominio de carga disponible: {type(charging)}")
+                                
+                                # Verificar charging status
+                                if hasattr(charging, 'chargingStatus'):
+                                    status = charging.chargingStatus
+                                    # Handle None values for hybrid vehicles
+                                    charge_power = getattr(getattr(status, 'chargePower_kW', None), 'value', None)
+                                    charge_rate = getattr(getattr(status, 'chargeRate_kmph', None), 'value', None)
+                                    
+                                    if charge_power is None and charge_rate is None:
+                                        _LOGGER.debug("Vehículo híbrido detectado (valores de carga None)")
+                                    else:
+                                        _LOGGER.debug(f"Potencia de carga: {charge_power}, Velocidad: {charge_rate}")
 
                     except Exception as e:
                         _LOGGER.error(f"Error al leer datos del vehículo: {e}")
@@ -107,7 +129,7 @@ async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str,
         _LOGGER.error(f"Error en el flujo de configuración: {setup_ex}", exc_info=True)
         raise
 
-    return {"title": "Cupra We Connect"}
+    return {"title": "Cupra Formentor"}
 
 
 class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
