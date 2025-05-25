@@ -6,8 +6,8 @@ import logging
 import asyncio
 import time
 
-from weconnect import weconnect
-from weconnect.service import Service
+# Import with correct structure
+from weconnect.weconnect import WeConnect
 from weconnect.elements.control_operation import ControlOperation
 
 from homeassistant.config_entries import ConfigEntry
@@ -29,10 +29,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Cupra Formentor from a config entry."""
 
     hass.data.setdefault(DOMAIN, {})
-    _we_connect = weconnect.WeConnect(
+    _we_connect = WeConnect(
         username=entry.data["username"],
         password=entry.data["password"],
-        service=Service(entry.data["service"]),
         updateAfterLogin=False,
         loginOnInit=False,
         timeout=10
