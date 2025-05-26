@@ -1,93 +1,55 @@
-cupra_start_stop_charging:
-  name: Cupra Start or Stop Charging
-  description: Starts or stops charging of Cupra vehicles.
+cupra_formentor_start_stop_charging:
+  name: Iniciar/Detener Carga
+  description: Inicia o detiene la carga del vehículo
   fields:
     vin:
       name: VIN
-      description: Vehicle identification number for the car.
+      description: VIN del vehículo
       required: true
-      example: VSSZZZ5FZMR001337
-      selector:
-        text:
     start_stop:
-      name: Start or Stop
-      description: Starts or stops charging.
+      name: Acción
+      description: "start" para iniciar, "stop" para detener
       required: true
-      selector:
-        select:
-          options:
-            - "start"
-            - "stop"
 
-cupra_set_climatisation:
-  name: Cupra Set Climatisation
-  description: Sets climatisation in Cupra vehicles.
+cupra_formentor_set_climatisation:
+  name: Configurar Climatización
+  description: Configura la climatización del vehículo
   fields:
     vin:
       name: VIN
-      description: Vehicle identification number for the car.
+      description: VIN del vehículo
       required: true
-      example: VSSZZZ5FZMR001337
-      selector:
-        text:
     start_stop:
-      name: Start or Stop
-      description: Starts or stops climatisation.
+      name: Acción
+      description: "start" para iniciar, "stop" para detener
       required: true
-      selector:
-        select:
-          options:
-            - "start"
-            - "stop"
     target_temp:
-      name: Target Temperature
-      description: Sets target temperature in Celsius.
+      name: Temperatura
+      description: Temperatura objetivo en Celsius
       required: false
-      selector:
-        number:
-          min: 10
-          max: 30
-          unit_of_measurement: "ºC"
 
-cupra_set_target_soc:
-  name: Cupra Set Target SoC
-  description: Sets the target SoC in Cupra vehicles.
+cupra_formentor_set_target_soc:
+  name: Configurar SOC Objetivo
+  description: Configura el nivel de carga objetivo
   fields:
     vin:
       name: VIN
-      description: Vehicle identification number for the car.
+      description: VIN del vehículo
       required: true
-      example: VSSZZZ5FZMR001337
-      selector:
-        text:
     target_soc:
-      name: Target State of Charge
-      description: Sets state of charge in percentage.
+      name: SOC
+      description: Porcentaje de carga objetivo (10-100)
       required: true
-      selector:
-        number:
-          min: 10
-          max: 100
-          step: 10
-          unit_of_measurement: "%"
 
-cupra_set_ac_charge_speed:
-  name: Cupra Set AC Charge Speed
-  description: Sets the AC charging speed in Cupra vehicles.
+cupra_formentor_set_ac_charge_speed:
+  name: Configurar Velocidad de Carga AC
+  description: Configura la velocidad de carga AC
   fields:
     vin:
       name: VIN
-      description: Vehicle identification number for the car.
+      description: VIN del vehículo
       required: true
-      example: VSSZZZ5FZMR001337
-      selector:
-        text:
     maximum_reduced:
-      name: Maximum or Reduced
-      description: Sets the AC charge speed.
+      name: Velocidad
+      description: "maximum" o "reduced"
       required: true
-      selector:
-        select:
-          options:
-            - "maximum"
-            - "reduced"

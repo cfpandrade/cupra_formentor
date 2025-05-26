@@ -1,3 +1,3 @@
-"""Constants for the Cupra We Connect integration."""
+"""Constants for the Cupra Formentor integration."""
 
 DOMAIN = "cupra_formentor"

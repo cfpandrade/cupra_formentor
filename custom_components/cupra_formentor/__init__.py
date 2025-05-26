@@ -4,7 +4,6 @@ from __future__ import annotations
 from datetime import timedelta
 import logging
 import asyncio
-import time
 
 # Import with correct structure
 from weconnect.weconnect import WeConnect
@@ -21,7 +20,8 @@ from homeassistant.helpers.update_coordinator import (
 
 from .const import DOMAIN
 
-PLATFORMS = [Platform.BINARY_SENSOR, Platform.BUTTON, Platform.SENSOR, Platform.NUMBER, Platform.DEVICE_TRACKER]
+# Removed DEVICE_TRACKER since we're limiting sensors
+PLATFORMS = [Platform.SENSOR, Platform.BINARY_SENSOR, Platform.BUTTON, Platform.NUMBER]
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -174,7 +174,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 
 def start_stop_charging(
-    call_data_vin, api: weconnect.WeConnect, operation: str
+    call_data_vin, api: WeConnect, operation: str
 ) -> bool:
     """Start of stop charging of your Cupra Formentor."""
 
@@ -208,7 +208,7 @@ def start_stop_charging(
 
 
 def set_ac_charging_speed(
-    call_data_vin, api: weconnect.WeConnect, charging_speed
+    call_data_vin, api: WeConnect, charging_speed
 ) -> bool:
     """Set charging speed in your Cupra Formentor."""
 
@@ -231,7 +231,7 @@ def set_ac_charging_speed(
     return True
 
 
-def set_target_soc(call_data_vin, api: weconnect.WeConnect, target_soc: int) -> bool:
+def set_target_soc(call_data_vin, api: WeConnect, target_soc: int) -> bool:
     """Set target SOC in your Cupra Formentor."""
 
     target_soc = int(target_soc)
@@ -255,7 +255,7 @@ def set_target_soc(call_data_vin, api: weconnect.WeConnect, target_soc: int) -> 
 
 
 def set_climatisation(
-    call_data_vin, api: weconnect.WeConnect, operation: str, target_temperature: float
+    call_data_vin, api: WeConnect, operation: str, target_temperature: float
 ) -> bool:
     """Set climate in your Cupra Formentor."""
 
@@ -330,7 +330,7 @@ class CupraFormentorBaseEntity(CoordinatorEntity):
 
     def __init__(
         self,
-        we_connect: weconnect.WeConnect,
+        we_connect: WeConnect,
         coordinator: DataUpdateCoordinator,
         index: int,
     ) -> None:
